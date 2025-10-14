@@ -16,12 +16,16 @@ A easier to use library for controlling the ESP32-S3 AMOLED 2.06" display with F
 
 ### Required Dependencies
 
-| Library                     | Description                                    | Source                                                                                      |
-| --------------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| GFX_Library_for_Arduino     | Graphics rendering library                     | [GitHub](https://github.com/moononournation/Arduino_GFX)                                    |
-| Arduino_DriveBus            | Driver bus interface library                   | [GitHub](https://github.com/Xinyuan-LilyGO/Arduino_DriveBus)                                |
-| LVGL                        | Light and Versatile Graphics Library (v9.x)    | [GitHub](https://github.com/lvgl/lvgl)                                                      |
-| XPowersLib                  | Power management library                       | [GitHub](https://github.com/lewisxhe/XPowersLib)                                            |
+| Demo                        | Basic Description                                                                                                                                             | Dependency Library      |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
+| 01_HelloWorld               | Demonstrates the basic graphics library functions and can also be used to test the basic performance of display screens and the display effect of random text | GFX_Library_for_Arduino |
+| 02_GFX_AsciiTable           | Prints ASCII characters in rows and columns on the display screen according to the screen size                                                                | GFX_Library_for_Arduino |
+| 03_LVGL_PCF85063_simpleTime | LVGL library displays the current time                                                                                                                        | LVGL, SensorLib         |
+| 04_LVGL_QMI8658_ui          | LVGL draws acceleration line chart                                                                                                                            | LVGL, SensorLib         |
+| 05_LVGL_AXP2101_ADC_Data    | LVGL displays PMIC data                                                                                                                                       | LVGL, XPowersLib        |
+| 06_LVGL_Arduino_v9          | LVGL demonstration                                                                                                                                            | LVGL, Arduino_DriveBus  |
+| 07_LVGL_SD_Test             | LVGL displays the contents of TF card files                                                                                                                   | LVGL                    |
+| 08_ES8311                   | ES8311 driver demo, playing simple audio                                                                                                                      | —                       |
 
 **Important:** You also need to create a `pin_config.h` file in the same directory with your pin definitions.
 
