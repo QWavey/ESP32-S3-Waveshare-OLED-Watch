@@ -1,4 +1,4 @@
-// This file types something when the button has been pressed
+// This file types something different, depends on the button which has been pressed
 #include <Arduino.h>
 #include "ESP32-S3-Screen-AMOLED-2.06.h"
 #include "ESP32-S3-Touch-AMOLED-2.06.h"
