@@ -30,6 +30,8 @@ ARDUINO: https://github.com/waveshareteam/ESP32-S3-Touch-AMOLED-2.06/tree/main/e
 
 ESP-IDF: https://github.com/waveshareteam/ESP32-S3-Touch-AMOLED-2.06/tree/main/examples/ESP-IDF-v5.4.2
 
+WIKI: https://www.waveshare.com/wiki/ESP32-S3-Touch-AMOLED-2.06#Compile_and_Flash_Demos (THE TABLE IS FROM THAT)
+
 
 ## Basic Usage
 
