@@ -48,7 +48,7 @@ WHEN USING SOME EXAMPLE CODES, YOU NEED TO DO:
 
 * Initializes your display hardware using **Arduino GFX + DriveBus**.
 * Integrates with LVGL for GUI rendering.
-* Provides helper functions for common UI elements:
+* Provides helper functions for common UI elements (STILL WIP AND DONT FULLY WORK RIGHT NOW):
 
   * `button_create()` – Create LVGL buttons.
   * `slider_create()` – Create LVGL sliders.
