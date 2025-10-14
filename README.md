@@ -26,9 +26,9 @@ A comprehensive library for controlling the ESP32-S3 AMOLED 2.06" display with F
 
 ## LINKS:
 
-ARDUINO: https://github.com/waveshareteam/ESP32-S3-Touch-AMOLED-2.06/tree/main/examples/Arduino-v3.2.0/libraries
+ARDUINO LIBS DOWNLOAD: https://github.com/waveshareteam/ESP32-S3-Touch-AMOLED-2.06/tree/main/examples/Arduino-v3.2.0/libraries
 
-ESP-IDF: https://github.com/waveshareteam/ESP32-S3-Touch-AMOLED-2.06/tree/main/examples/ESP-IDF-v5.4.2
+ESP-IDF LIBS DOWNLOAD: https://github.com/waveshareteam/ESP32-S3-Touch-AMOLED-2.06/tree/main/examples/ESP-IDF-v5.4.2
 
 WIKI: https://www.waveshare.com/wiki/ESP32-S3-Touch-AMOLED-2.06#Compile_and_Flash_Demos (THE TABLE IS FROM THAT)
 
