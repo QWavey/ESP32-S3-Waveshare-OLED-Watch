@@ -27,7 +27,7 @@ public:
         lv_obj_t* btn = lv_btn_create(parent);
         lv_obj_set_size(btn, w, h);
         lv_obj_align(btn, LV_ALIGN_CENTER, x, y);
-        if(cb) lv_obj_add_event_cb(btn, cb, LV_EVENT_ALL, nullptr);
+        if(cb) lv_obj_add_event_cb(btn, cb, LV_EVENT_CLICKED, nullptr);
 
         lv_obj_t* label = lv_label_create(btn);
         lv_label_set_text(label, text);
@@ -39,7 +39,7 @@ public:
         lv_obj_t* slider = lv_slider_create(parent);
         lv_obj_set_size(slider, w, h);
         lv_obj_align(slider, LV_ALIGN_CENTER, x, y);
-        if(cb) lv_obj_add_event_cb(slider, cb, LV_EVENT_ALL, nullptr);
+        if(cb) lv_obj_add_event_cb(slider, cb, LV_EVENT_VALUE_CHANGED, nullptr);
         return slider;
     }
 
@@ -57,7 +57,7 @@ private:
     Arduino_DataBus* bus;
     Arduino_GFX* gfx;
     lv_display_t* disp;
-    lv_color_t buf[LCD_WIDTH * 40];
+    lv_color_t buf[LCD_WIDTH * 40]; // KEEP original buffer size
 
     static void flush_cb(lv_display_t* disp, const lv_area_t* area, uint8_t* pixel_map) {
         Arduino_GFX* gfx = (Arduino_GFX*)lv_display_get_user_data(disp);
@@ -78,6 +78,7 @@ private:
 
         disp = lv_display_create(LCD_WIDTH, LCD_HEIGHT);
         lv_display_set_flush_cb(disp, flush_cb);
+        // KEEP original buffer configuration
         lv_display_set_buffers(disp, buf, NULL, sizeof(buf), LV_DISPLAY_RENDER_MODE_PARTIAL);
         lv_display_set_user_data(disp, gfx);
         lv_display_set_color_format(disp, LV_COLOR_FORMAT_RGB565);
