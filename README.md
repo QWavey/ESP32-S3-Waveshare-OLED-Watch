@@ -1,9 +1,10 @@
 
 
-# ESP32-S3 AMOLED 2.06" Display Library
+# Simpler ESP32-S3 AMOLED 2.06" Display Library
 
 A easier to use library for controlling the ESP32-S3 AMOLED 2.06" display with FT3168 touch controller and LVGL integration.
 
+<img width="270" height="203" alt="image" src="https://github.com/user-attachments/assets/3c2f57c0-1153-4300-82ca-c60a3f09c733" />
 
 # Arduino LVGL Touch & Display Library
 
@@ -91,4 +92,7 @@ This library is provided as-is for use with the ESP32-S3 AMOLED 2.06" display.
 
 ## Contributing
 
-Contributions are welcome! Please submit issues and pull requests on the project reposito
+Contributions are welcome! Please submit issues and pull requests on the project repository
+
+
+THESE ARE ALL SUBJECT TO CHANGE
