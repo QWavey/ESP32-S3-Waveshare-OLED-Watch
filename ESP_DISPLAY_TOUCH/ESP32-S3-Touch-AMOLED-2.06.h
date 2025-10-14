@@ -22,14 +22,15 @@ public:
         digitalWrite(TP_RESET, LOW);
         delay(10);
         digitalWrite(TP_RESET, HIGH);
-        delay(50);
+        delay(100);
 
         pinMode(TP_INT, INPUT_PULLUP);
-        delay(20);
+        delay(50);
 
         // Step 2: start I2C
-        Wire.begin(IIC_SDA, IIC_SCL, 400000);
+        Wire.begin(IIC_SDA, IIC_SCL, 100000); // Reduced speed for stability
         Serial.printf("I2C begin on SDA=%d SCL=%d\n", IIC_SDA, IIC_SCL);
+        Wire.setTimeOut(1000); // Set I2C timeout
 
         // Step 3: scan the I2C bus
         Serial.println("Scanning I2C bus for touch controller...");
@@ -39,15 +40,17 @@ public:
             Wire.beginTransmission(addr);
             if (Wire.endTransmission() == 0) {
                 Serial.printf("I2C device found at 0x%02X\n", addr);
-                if (addr == FT3168_DEVICE_ADDRESS) {
+                if (addr == FT3168_DEVICE_ADDRESS || addr == 0x38) {
                     found = true;
                     detectedAddr = addr;
+                    break; // Stop at first found device
                 }
             }
         }
 
         if (!found) {
-            Serial.println("⚠️ No FT3168 found on I2C! Trying anyway...");
+            Serial.println("⚠️ No touch controller found on I2C!");
+            // Continue anyway, we'll use fallback
             detectedAddr = FT3168_DEVICE_ADDRESS;
         }
 
@@ -61,21 +64,26 @@ public:
             touchInterruptStatic
         );
 
-        // Step 5: initialize the chip (multiple tries)
-        uint8_t tries = 0;
-        while (!FT3168->begin() && tries < 5) {
-            Serial.println("FT3168 not responding, retrying...");
-            delay(500);
-            tries++;
+        // Step 5: try to initialize (but don't block if it fails)
+        bool init_success = false;
+        for (int i = 0; i < 3; i++) {
+            if (FT3168->begin()) {
+                init_success = true;
+                Serial.println("✅ Touch controller initialized!");
+                break;
+            }
+            Serial.printf("Touch init attempt %d failed\n", i + 1);
+            delay(100);
         }
 
-        if (tries >= 5) {
-            Serial.println("❌ Touch controller failed to initialize after 5 tries!");
+        if (!init_success) {
+            Serial.println("❌ Touch controller init failed, using fallback mode");
+            touch_available = false;
         } else {
-            Serial.println("✅ Touch controller initialized successfully!");
+            touch_available = true;
         }
 
-        // Step 6: register LVGL input device
+        // Step 6: register LVGL input device (always do this)
         indev = lv_indev_create();
         lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER);
         lv_indev_set_read_cb(indev, read_cb);
@@ -88,12 +96,17 @@ public:
     lv_indev_t* getIndev() { return indev; }
 
     bool isTouched() {
-        if (!FT3168) return false;
-        return FT3168->IIC_Interrupt_Flag || (readRawX() > 0 && readRawY() > 0);
+        if (!touch_available || !FT3168) return false;
+        
+        // Quick check without extensive I2C communication
+        return digitalRead(TP_INT) == LOW;
     }
 
     void getTouchPoint(int32_t &x, int32_t &y) {
-        if (!FT3168) { x = y = 0; return; }
+        if (!touch_available || !FT3168) { 
+            x = y = 0; 
+            return; 
+        }
         x = readRawX();
         y = readRawY();
     }
@@ -103,71 +116,88 @@ private:
     std::unique_ptr<Arduino_FT3x68> FT3168;
     lv_indev_t* indev = nullptr;
     static TouchClass* instance;
-    static bool usePolling; // fallback mode flag
+    bool touch_available = false;
+    uint32_t last_touch_time = 0;
+    int32_t last_x = 0, last_y = 0;
 
     static void touchInterruptStatic() {
-        if (instance && instance->FT3168) {
-            instance->FT3168->IIC_Interrupt_Flag = true;
-            // Uncomment for noisy debug:
-            // Serial.println("[INTERRUPT] Touch detected!");
+        // Just record that we had an interrupt
+        if (instance) {
+            instance->last_touch_time = millis();
         }
     }
 
     static void read_cb(lv_indev_t* indev, lv_indev_data_t* data) {
-        if (!instance || !instance->FT3168) {
+        if (!instance) {
             data->state = LV_INDEV_STATE_RELEASED;
             return;
         }
 
-        // Interrupt-based mode
-        if (instance->FT3168->IIC_Interrupt_Flag) {
-            instance->FT3168->IIC_Interrupt_Flag = false;
-            int32_t x = instance->readRawX();
-            int32_t y = instance->readRawY();
-            if (x > 0 && y > 0) {
+        // If touch is not available, always return released
+        if (!instance->touch_available) {
+            data->state = LV_INDEV_STATE_RELEASED;
+            return;
+        }
+
+        // Check if we recently had a touch interrupt
+        bool recent_touch = (millis() - instance->last_touch_time < 100);
+        
+        // Also check the interrupt pin directly (fast)
+        bool pin_touch = (digitalRead(TP_INT) == LOW);
+
+        if (recent_touch || pin_touch) {
+            // Try to read coordinates with error handling
+            int32_t x = instance->readRawXSafe();
+            int32_t y = instance->readRawYSafe();
+            
+            if (x > 10 && y > 10 && x < 4000 && y < 4000) {
                 data->state = LV_INDEV_STATE_PRESSED;
                 data->point.x = x;
                 data->point.y = y;
-                Serial.printf("[TOUCH INT] X=%d Y=%d\n", x, y);
+                instance->last_x = x;
+                instance->last_y = y;
                 return;
             }
         }
 
-        // Polling fallback (runs every tick)
-        int32_t x = instance->readRawX();
-        int32_t y = instance->readRawY();
-        if (x > 0 && y > 0) {
-            data->state = LV_INDEV_STATE_PRESSED;
-            data->point.x = x;
-            data->point.y = y;
-            if (!usePolling) {
-                Serial.println("⚠️ Using polling fallback mode (no INT detected)");
-                usePolling = true;
-            }
-            Serial.printf("[TOUCH POLL] X=%d Y=%d\n", x, y);
-        } else {
-            data->state = LV_INDEV_STATE_RELEASED;
+        // No valid touch detected
+        data->state = LV_INDEV_STATE_RELEASED;
+        data->point.x = instance->last_x;
+        data->point.y = instance->last_y;
+    }
+
+    int32_t readRawXSafe() {
+        if (!FT3168) return 0;
+        try {
+            return FT3168->IIC_Read_Device_Value(
+                FT3168->Arduino_IIC_Touch::Value_Information::TOUCH_COORDINATE_X);
+        } catch (...) {
+            return 0;
         }
     }
 
-    int32_t readRawX() {
+    int32_t readRawYSafe() {
         if (!FT3168) return 0;
-        int32_t val = FT3168->IIC_Read_Device_Value(
-            FT3168->Arduino_IIC_Touch::Value_Information::TOUCH_COORDINATE_X);
-        return val;
+        try {
+            return FT3168->IIC_Read_Device_Value(
+                FT3168->Arduino_IIC_Touch::Value_Information::TOUCH_COORDINATE_Y);
+        } catch (...) {
+            return 0;
+        }
+    }
+
+    // Original functions (keep for compatibility)
+    int32_t readRawX() {
+        return readRawXSafe();
     }
 
     int32_t readRawY() {
-        if (!FT3168) return 0;
-        int32_t val = FT3168->IIC_Read_Device_Value(
-            FT3168->Arduino_IIC_Touch::Value_Information::TOUCH_COORDINATE_Y);
-        return val;
+        return readRawYSafe();
     }
 };
 
 // Static member definitions
 TouchClass* TouchClass::instance = nullptr;
-bool TouchClass::usePolling = false;
 
 // Global object
 extern TouchClass Touch;
