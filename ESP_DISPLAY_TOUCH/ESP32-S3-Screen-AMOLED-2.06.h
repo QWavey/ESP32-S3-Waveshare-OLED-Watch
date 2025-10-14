@@ -8,7 +8,7 @@
 class ScreenClass {
 private:
     Arduino_DataBus *bus = nullptr;
-    Arduino_GFX *gfx = nullptr;
+    Arduino_GFX *gfx_display = nullptr;
     lv_display_t *disp = nullptr;
     lv_color_t *disp_draw_buf = nullptr;
     lv_color_t *disp_draw_buf2 = nullptr;
@@ -24,7 +24,14 @@ private:
     uint32_t flushCount = 0;
     uint32_t lastFlushTime = 0;
 
+    // Static pointer for lambda access
+    static ScreenClass* instance;
+
 public:
+    ScreenClass() {
+        instance = this;
+    }
+
     // Initialization with optional double buffering
     bool on(bool useDoubleBuffer = false) {
         if (initialized) {
@@ -43,27 +50,27 @@ public:
         }
 
         // Initialize display
-        gfx = new Arduino_CO5300(bus, LCD_RESET, 0, LCD_WIDTH, LCD_HEIGHT, 22, 0, 0, 0);
-        if (!gfx) {
+        gfx_display = new Arduino_CO5300(bus, LCD_RESET, 0, LCD_WIDTH, LCD_HEIGHT, 22, 0, 0, 0);
+        if (!gfx_display) {
             Serial.println("Failed to create GFX");
             delete bus;
             bus = nullptr;
             return false;
         }
 
-        if (!gfx->begin()) {
+        if (!gfx_display->begin()) {
             Serial.println("Failed to begin GFX");
-            delete gfx;
+            delete gfx_display;
             delete bus;
-            gfx = nullptr;
+            gfx_display = nullptr;
             bus = nullptr;
             return false;
         }
 
-        gfx->fillScreen(RGB565_BLACK);
+        gfx_display->fillScreen(RGB565_BLACK);
         
-        screenWidth = gfx->width();
-        screenHeight = gfx->height();
+        screenWidth = gfx_display->width();
+        screenHeight = gfx_display->height();
         bufSize = screenWidth * 50;
 
         // Allocate primary buffer
@@ -76,9 +83,9 @@ public:
         
         if (!disp_draw_buf) {
             Serial.println("Failed to allocate display buffer");
-            delete gfx;
+            delete gfx_display;
             delete bus;
-            gfx = nullptr;
+            gfx_display = nullptr;
             bus = nullptr;
             return false;
         }
@@ -103,11 +110,11 @@ public:
             Serial.println("Failed to create LVGL display");
             free(disp_draw_buf);
             if (disp_draw_buf2) free(disp_draw_buf2);
-            delete gfx;
+            delete gfx_display;
             delete bus;
             disp_draw_buf = nullptr;
             disp_draw_buf2 = nullptr;
-            gfx = nullptr;
+            gfx_display = nullptr;
             bus = nullptr;
             return false;
         }
@@ -117,11 +124,11 @@ public:
             uint32_t w = lv_area_get_width(area);
             uint32_t h = lv_area_get_height(area);
             
-            if (Screen.gfx()) {
-                Screen.lastFlushTime = millis();
-                static_cast<Arduino_CO5300*>(Screen.gfx())->draw16bitRGBBitmap(
+            if (instance && instance->gfx_display) {
+                instance->lastFlushTime = millis();
+                static_cast<Arduino_CO5300*>(instance->gfx_display)->draw16bitRGBBitmap(
                     area->x1, area->y1, (uint16_t *)px_map, w, h);
-                Screen.flushCount++;
+                instance->flushCount++;
             }
             
             lv_disp_flush_ready(disp);
@@ -159,9 +166,9 @@ public:
             disp_draw_buf2 = nullptr;
         }
         
-        if (gfx) {
-            delete gfx;
-            gfx = nullptr;
+        if (gfx_display) {
+            delete gfx_display;
+            gfx_display = nullptr;
         }
         
         if (bus) {
@@ -174,8 +181,8 @@ public:
     }
 
     // Getters
-    Arduino_GFX* gfx() { return gfx; }
-    Arduino_GFX* getGFX() { return gfx; }
+    Arduino_GFX* gfx() { return gfx_display; }
+    Arduino_GFX* getGFX() { return gfx_display; }
     lv_display_t* getDisplay() { return disp; }
     uint32_t width() const { return screenWidth; }
     uint32_t height() const { return screenHeight; }
@@ -186,23 +193,21 @@ public:
     // Brightness control
     void setBrightness(uint8_t level) {
         brightness = level;
-        // Implement hardware brightness control if available
-        // gfx->setBrightness(brightness);
     }
     
     uint8_t getBrightness() const { return brightness; }
 
     // Screen operations
     void fillScreen(uint16_t color) {
-        if (gfx) gfx->fillScreen(color);
+        if (gfx_display) gfx_display->fillScreen(color);
     }
 
     void sleep() {
-        if (gfx) gfx->displayOff();
+        if (gfx_display) gfx_display->displayOff();
     }
 
     void wake() {
-        if (gfx) gfx->displayOn();
+        if (gfx_display) gfx_display->displayOn();
     }
 
     // ===== ENHANCED BUTTON CREATION =====
@@ -245,20 +250,6 @@ public:
         return btn;
     }
 
-    // Button with icon
-    lv_obj_t* createIconButton(const char* icon_text, lv_align_t align, int16_t x, int16_t y,
-                               int16_t w, int16_t h, lv_event_cb_t cb, void* user_data = nullptr) {
-        lv_obj_t *btn = createButton(icon_text, align, x, y, w, h, cb, user_data);
-        if (!btn) return nullptr;
-
-        lv_obj_t *label = lv_obj_get_child(btn, 0);
-        if (label) {
-            lv_obj_set_style_text_font(label, &lv_font_montserrat_20, LV_PART_MAIN);
-        }
-
-        return btn;
-    }
-
     // Get button label
     lv_obj_t* getButtonLabel(lv_obj_t* btn) {
         return btn ? lv_obj_get_child(btn, 0) : nullptr;
@@ -284,41 +275,6 @@ public:
         return label;
     }
 
-    // ===== SLIDER CREATION =====
-    lv_obj_t* createSlider(lv_align_t align, int16_t x, int16_t y, int16_t w,
-                          int32_t min_val, int32_t max_val, int32_t start_val,
-                          lv_event_cb_t cb, void* user_data = nullptr) {
-        if (!initialized) return nullptr;
-
-        lv_obj_t *slider = lv_slider_create(lv_scr_act());
-        if (!slider) return nullptr;
-
-        lv_obj_set_size(slider, w, 20);
-        lv_obj_align(slider, align, x, y);
-        lv_slider_set_range(slider, min_val, max_val);
-        lv_slider_set_value(slider, start_val, LV_ANIM_OFF);
-
-        if (cb) {
-            lv_obj_add_event_cb(slider, cb, LV_EVENT_VALUE_CHANGED, user_data);
-        }
-
-        return slider;
-    }
-
-    // ===== PROGRESS BAR =====
-    lv_obj_t* createProgressBar(lv_align_t align, int16_t x, int16_t y, int16_t w) {
-        if (!initialized) return nullptr;
-
-        lv_obj_t *bar = lv_bar_create(lv_scr_act());
-        if (!bar) return nullptr;
-
-        lv_obj_set_size(bar, w, 20);
-        lv_obj_align(bar, align, x, y);
-        lv_bar_set_value(bar, 0, LV_ANIM_OFF);
-
-        return bar;
-    }
-
     // ===== UTILITY FUNCTIONS =====
     void clearScreen() {
         if (!initialized) return;
@@ -342,5 +298,8 @@ public:
         off();
     }
 };
+
+// Static member initialization
+ScreenClass* ScreenClass::instance = nullptr;
 
 extern ScreenClass Screen;
