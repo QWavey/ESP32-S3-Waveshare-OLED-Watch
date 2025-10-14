@@ -17,6 +17,21 @@ These classes allow seamless integration of touchscreen displays with LVGL for c
 
 ---
 
+
+NOTE:
+WHEN USING SOME APPS YOU NEED TO DO:
+
+
+| Setting              | Value                                   |
+|----------------------|------------------------------------------|
+| **Board**            | ESP32S3 Dev Module                      |
+| **Flash Size**       | 32MB (256Mb)                            |
+| **PSRAM**            | OPI PSRAM                               |
+| **Partition Scheme** | Huge APP (3MB No OTA / 1MB SPIFFS)      |
+| **CPU Frequency**    | 240MHz (WiFi)                           |
+| **USB CDC On Boot**  | Enabled                                 |
+
+
 ## Features
 
 ### TouchClass
