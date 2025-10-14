@@ -19,7 +19,7 @@ These classes allow seamless integration of touchscreen displays with LVGL for c
 
 
 NOTE:
-WHEN USING SOME APPS YOU NEED TO DO:
+WHEN USING SOME EXAMPLE CODES, YOU NEED TO DO:
 
 
 | Setting              | Value                                   |
