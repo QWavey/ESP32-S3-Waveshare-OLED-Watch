@@ -11,6 +11,8 @@ A comprehensive library for controlling the ESP32-S3 AMOLED 2.06" display with F
    - Linux: `~/Arduino/libraries/`
 3. Restart Arduino IDE
 4. Install dependencies:
+
+
 | Demo                        | Basic Description                                                                                                                                             | Dependency Library      |
 | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
 | 01_HelloWorld               | Demonstrates the basic graphics library functions and can also be used to test the basic performance of display screens and the display effect of random text | GFX_Library_for_Arduino |
