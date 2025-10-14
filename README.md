@@ -33,7 +33,7 @@ ESP-IDF: https://github.com/waveshareteam/ESP32-S3-Touch-AMOLED-2.06/tree/main/e
 
 ### Screen Initialization
 
-```cpp
+```
 #include "ESP32-S3-Screen-AMOLED-2.06.h"
 #include "ESP32-S3-Touch-AMOLED-2.06.h"
 
