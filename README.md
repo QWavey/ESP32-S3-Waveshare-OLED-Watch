@@ -403,7 +403,3 @@ void loop() {
 - `uint32_t timeSinceLastTouch()` - Time since last touch
 - `void resetStats()` - Reset statistics
 - `void printInfo()` - Print touch information
-
-## Troubleshooting
-
-**
