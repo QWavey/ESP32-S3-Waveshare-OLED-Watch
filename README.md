@@ -41,28 +41,11 @@ These classes allow seamless integration of touchscreen displays with LVGL for c
 
 ---
 
+
+
 ## Requirements
 
 * **Arduino IDE** or **PlatformIO**
-* Libraries:
-
-  * [Arduino GFX Library](https://github.com/moononournation/Arduino_GFX)
-  * [Arduino DriveBus Library](https://github.com/moononournation/Arduino_DriveBus)
-  * [LVGL](https://lvgl.io/) (Light and Versatile Graphics Library)
-* Compatible hardware: ESP32 or similar MCU with **I2C** and **SPI/QSPI** support for touch and display.
-
-
-
-## Installation
-
-1. Download or clone this repository
-2. Copy the files to your Arduino libraries directory:
-   - Windows: `Documents\Arduino\libraries\ESP_TOUCH_DISPLAY\`
-   - Mac: `~/Documents/Arduino/libraries/ESP_TOUCH_DISPLAY/`
-   - Linux: `~/Arduino/libraries/ESP_TOUCH_DISPLAY/`
-3. Restart Arduino IDE
-4. Install dependencies (see table below)
-
 ### Required Dependencies
 
 | Demo                        | Basic Description                                                                                                                                             | Dependency Library      |
@@ -84,6 +67,18 @@ These classes allow seamless integration of touchscreen displays with LVGL for c
 - **ESP-IDF LIBS DOWNLOAD:** https://github.com/waveshareteam/ESP32-S3-Touch-AMOLED-2.06/tree/main/examples/ESP-IDF-v5.4.2
 - **WIKI:** https://www.waveshare.com/wiki/ESP32-S3-Touch-AMOLED-2.06
 
+
+
+
+## Installation
+
+1. Download or clone this repository
+2. Copy the files to your Arduino libraries directory:
+   - Windows: `Documents\Arduino\libraries\ESP_TOUCH_DISPLAY\`
+   - Mac: `~/Documents/Arduino/libraries/ESP_TOUCH_DISPLAY/`
+   - Linux: `~/Arduino/libraries/ESP_TOUCH_DISPLAY/`
+3. Restart Arduino IDE
+4. Install dependencies (see table above
 
 ### Compilation errors
 - Ensure you're using LVGL v9.x
