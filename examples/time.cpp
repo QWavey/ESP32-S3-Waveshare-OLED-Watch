@@ -16,13 +16,13 @@ unsigned long lastMillis = 0;
 unsigned long last_tick = 0;
 
 // -------------------- Wi-Fi & NTP --------------------
-const char* ssid     = "Hotspot";
-const char* password = "9876543211";
+const char* ssid     = "YOUR_WIFI_SSID";
+const char* password = "YOUR_WIFI_PASSWORD";
 const char* ntpServer = "pool.ntp.org";
 
 // -------------------- Timezone (easy to change) --------------------
 // Example: "UTC+1" or "UTC-1"
-const String timezoneStr = "UTC+2";  
+const String timezoneStr = "UTC+1";  
 
 long gmtOffset_sec = 0;
 int daylightOffset_sec = 0;
