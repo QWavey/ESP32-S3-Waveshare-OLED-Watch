@@ -9,7 +9,7 @@
 class TouchClass {
 private:
     std::shared_ptr<Arduino_IIC_DriveBus> IIC_Bus = nullptr;
-    std::unique_ptr<Arduino_IIC> FT3168 = nullptr;
+    std::unique_ptr<Arduino_FT3x68> FT3168 = nullptr;
     
     bool initialized = false;
     uint32_t touchCount = 0;
@@ -29,7 +29,22 @@ private:
     // Statistics
     uint32_t interrupt_count = 0;
 
+    // Static pointer for lambda access
+    static TouchClass* instance;
+
+    // Static interrupt callback
+    static void static_interrupt_callback() {
+        if (instance && instance->FT3168) {
+            instance->FT3168->IIC_Interrupt_Flag = true;
+            instance->interrupt_count++;
+        }
+    }
+
 public:
+    TouchClass() {
+        instance = this;
+    }
+
     // Initialize touch controller
     bool on(uint32_t timeout_ms = 10000) {
         if (initialized) {
@@ -52,13 +67,11 @@ public:
             return false;
         }
 
-        // Create touch controller
-        FT3168 = std::make_unique<Arduino_FT3x68>(
-            IIC_Bus, 
-            FT3168_DEVICE_ADDRESS,
-            DRIVEBUS_DEFAULT_VALUE, 
-            TP_INT,
-            std::bind(&TouchClass::interrupt_cb, this)
+        // Create touch controller with static callback
+        FT3168 = std::unique_ptr<Arduino_FT3x68>(
+            new Arduino_FT3x68(IIC_Bus, FT3168_DEVICE_ADDRESS,
+                              DRIVEBUS_DEFAULT_VALUE, TP_INT,
+                              static_interrupt_callback)
         );
 
         if (!FT3168) {
@@ -96,27 +109,11 @@ public:
     void off() {
         if (!initialized) return;
 
-        // Set to sleep mode before shutdown
-        if (FT3168) {
-            FT3168->IIC_Write_Device_State(
-                FT3168->Arduino_IIC_Touch::Device::TOUCH_POWER_MODE,
-                FT3168->Arduino_IIC_Touch::Device_Mode::TOUCH_POWER_SLEEP
-            );
-        }
-
         FT3168.reset();
         IIC_Bus.reset();
         initialized = false;
         
         Serial.println("Touch shutdown complete");
-    }
-
-    // Interrupt callback
-    void interrupt_cb() {
-        if (FT3168) {
-            FT3168->IIC_Interrupt_Flag = true;
-            interrupt_count++;
-        }
     }
 
     // Read touch input for LVGL
@@ -126,41 +123,44 @@ public:
             return;
         }
 
-        uint8_t touched = FT3168->IIC_Read_Device_State(
-            FT3168->Arduino_IIC_Touch::Device::TOUCH_POINTS_NUM
+        uint8_t touched = FT3168->IIC_Read_Device_Value(
+            FT3168->Arduino_IIC_Touch::Value_Index::TOUCH_FINGER_NUMBER
         );
 
         if (touched > 0) {
-            int16_t x = FT3168->IIC_Read_Device_State(
-                FT3168->Arduino_IIC_Touch::Device::TOUCH_COORDINATE_X
+            int32_t x[1], y[1];
+            FT3168->IIC_Read_Device_Value(
+                FT3168->Arduino_IIC_Touch::Value_Index::TOUCH_COORDINATE_X, x, 1
             );
-            int16_t y = FT3168->IIC_Read_Device_State(
-                FT3168->Arduino_IIC_Touch::Device::TOUCH_COORDINATE_Y
+            FT3168->IIC_Read_Device_Value(
+                FT3168->Arduino_IIC_Touch::Value_Index::TOUCH_COORDINATE_Y, y, 1
             );
 
+            int16_t touch_x = (int16_t)x[0];
+            int16_t touch_y = (int16_t)y[0];
+
             // Apply calibration
-            x = (int16_t)((x + calibration_x_offset) * calibration_x_scale);
-            y = (int16_t)((y + calibration_y_offset) * calibration_y_scale);
+            touch_x = (int16_t)((touch_x + calibration_x_offset) * calibration_x_scale);
+            touch_y = (int16_t)((touch_y + calibration_y_offset) * calibration_y_scale);
 
             // Apply noise filter
             if (last_x != -1 && last_y != -1) {
-                int16_t dx = abs(x - last_x);
-                int16_t dy = abs(y - last_y);
+                int16_t dx = abs(touch_x - last_x);
+                int16_t dy = abs(touch_y - last_y);
                 
                 if (dx < noise_threshold && dy < noise_threshold) {
-                    // Too small movement, keep last position
-                    x = last_x;
-                    y = last_y;
+                    touch_x = last_x;
+                    touch_y = last_y;
                 }
             }
 
-            last_x = x;
-            last_y = y;
+            last_x = touch_x;
+            last_y = touch_y;
             lastTouchTime = millis();
             touchCount++;
 
-            data->point.x = x;
-            data->point.y = y;
+            data->point.x = touch_x;
+            data->point.y = touch_y;
             data->state = LV_INDEV_STATE_PRESSED;
         } else {
             last_x = -1;
@@ -184,7 +184,9 @@ public:
 
         lv_indev_set_type(touch_indev, LV_INDEV_TYPE_POINTER);
         lv_indev_set_read_cb(touch_indev, [](lv_indev_t *indev, lv_indev_data_t *data) {
-            Touch.lvgl_touch_read(indev, data);
+            if (instance) {
+                instance->lvgl_touch_read(indev, data);
+            }
         });
 
         Serial.println("LVGL touch input configured");
@@ -195,17 +197,20 @@ public:
     bool getTouchPoint(int16_t &x, int16_t &y, uint8_t point_index = 0) {
         if (!initialized || !FT3168) return false;
 
-        uint8_t touched = FT3168->IIC_Read_Device_State(
-            FT3168->Arduino_IIC_Touch::Device::TOUCH_POINTS_NUM
+        uint8_t touched = FT3168->IIC_Read_Device_Value(
+            FT3168->Arduino_IIC_Touch::Value_Index::TOUCH_FINGER_NUMBER
         );
 
         if (touched > point_index) {
-            x = FT3168->IIC_Read_Device_State(
-                FT3168->Arduino_IIC_Touch::Device::TOUCH_COORDINATE_X
+            int32_t x_arr[1], y_arr[1];
+            FT3168->IIC_Read_Device_Value(
+                FT3168->Arduino_IIC_Touch::Value_Index::TOUCH_COORDINATE_X, x_arr, 1
             );
-            y = FT3168->IIC_Read_Device_State(
-                FT3168->Arduino_IIC_Touch::Device::TOUCH_COORDINATE_Y
+            FT3168->IIC_Read_Device_Value(
+                FT3168->Arduino_IIC_Touch::Value_Index::TOUCH_COORDINATE_Y, y_arr, 1
             );
+            x = (int16_t)x_arr[0];
+            y = (int16_t)y_arr[0];
             return true;
         }
         return false;
@@ -215,8 +220,8 @@ public:
     uint8_t getTouchPoints() {
         if (!initialized || !FT3168) return 0;
         
-        return FT3168->IIC_Read_Device_State(
-            FT3168->Arduino_IIC_Touch::Device::TOUCH_POINTS_NUM
+        return FT3168->IIC_Read_Device_Value(
+            FT3168->Arduino_IIC_Touch::Value_Index::TOUCH_FINGER_NUMBER
         );
     }
 
@@ -248,28 +253,9 @@ public:
         return noise_threshold;
     }
 
-    // Power management
-    bool sleep() {
-        if (!initialized || !FT3168) return false;
-        
-        return FT3168->IIC_Write_Device_State(
-            FT3168->Arduino_IIC_Touch::Device::TOUCH_POWER_MODE,
-            FT3168->Arduino_IIC_Touch::Device_Mode::TOUCH_POWER_SLEEP
-        );
-    }
-
-    bool wake() {
-        if (!initialized || !FT3168) return false;
-        
-        return FT3168->IIC_Write_Device_State(
-            FT3168->Arduino_IIC_Touch::Device::TOUCH_POWER_MODE,
-            FT3168->Arduino_IIC_Touch::Device_Mode::TOUCH_POWER_MONITOR
-        );
-    }
-
     // Getters
-    Arduino_IIC* getFT3168() { return FT3168.get(); }
-    Arduino_IIC* get() { return FT3168.get(); }
+    Arduino_FT3x68* getFT3168() { return FT3168.get(); }
+    Arduino_FT3x68* get() { return FT3168.get(); }
     bool isInitialized() const { return initialized; }
     uint32_t getTouchCount() const { return touchCount; }
     uint32_t getLastTouchTime() const { return lastTouchTime; }
@@ -312,5 +298,8 @@ public:
         off();
     }
 };
+
+// Static member initialization
+TouchClass* TouchClass::instance = nullptr;
 
 extern TouchClass Touch;
