@@ -1,20 +1,126 @@
-#include "SimpleUI.h"
+#ifndef SIMPLEUI_H
+#define SIMPLEUI_H
+
+#include <Arduino.h>
+#include <lvgl.h>
+#include <functional>
 
 // ==================== Global Functions ====================
-void SimpleUI_init() {
-    // Placeholder for future initialization if needed
-    // Currently does nothing - user handles LVGL tick manually for compatibility
-    // with existing code patterns (see example's loop() function)
-}
+void SimpleUI_init();
+void SimpleUI_update();
+
+// ==================== Screen Class ====================
+class UIScreen {
+private:
+    lv_obj_t* screen;
+
+public:
+    UIScreen();
+    ~UIScreen();
+    void load();
+    void setBackgroundColor(uint8_t r, uint8_t g, uint8_t b);
+    lv_obj_t* getObject() { return screen; }
+};
+
+// ==================== Label Class ====================
+class UILabel {
+private:
+    lv_obj_t* label;
+
+public:
+    UILabel();
+    ~UILabel();
+    void create(lv_obj_t* parent = nullptr, int x = 0, int y = 0, int w = LV_SIZE_CONTENT);
+    void setText(const char* text);
+    void setColor(uint8_t r, uint8_t g, uint8_t b);
+    void setFontSize(uint8_t size);
+    void hide();
+    void show();
+    lv_obj_t* getObject() { return label; }
+};
+
+// ==================== Button Class ====================
+class UIButton {
+private:
+    lv_obj_t* btn;
+    lv_obj_t* label;
+    std::function<void()> clickCallback;
+
+    static void event_handler(lv_event_t* e);
+
+public:
+    UIButton();
+    ~UIButton();
+    void create(lv_obj_t* parent, const char* text, int x, int y, int w, int h);
+    void onClick(std::function<void()> callback);
+    void setBackgroundColor(uint8_t r, uint8_t g, uint8_t b);
+    void setText(const char* text);
+    void hide();
+    void show();
+    void enable();
+    void disable();
+    lv_obj_t* getObject() { return btn; }
+};
+
+// ==================== TextBox Class ====================
+class UITextBox {
+private:
+    lv_obj_t* textarea;
+    std::function<void()> clickedCallback;
+    std::function<void(String)> submitCallback;
+
+    static void event_handler(lv_event_t* e);
+    
+public:
+    UITextBox();
+    ~UITextBox();
+    void create(lv_obj_t* parent, int x, int y, int w, int h);
+    void setPlaceholder(const char* text);
+    void setPasswordMode(bool enabled);
+    void setText(const char* text);
+    String getText();
+    void clear();
+    void focus();
+    void onClicked(std::function<void()> callback);
+    void onSubmit(std::function<void(String)> callback);
+    void setCursorColor(uint8_t r, uint8_t g, uint8_t b);
+    void submitText();  // Public method to trigger submit
+    lv_obj_t* getObject() { return textarea; }
+};
+
+// ==================== Keyboard Class ====================
+class UIKeyboard {
+private:
+    lv_obj_t* keyboard;
+    UITextBox* linkedTextBox;
+    bool visible;
+    std::function<void(String)> enterCallback;
+    std::function<void()> cancelCallback;
+
+    static void event_handler(lv_event_t* e);
+
+public:
+    UIKeyboard();
+    ~UIKeyboard();
+    void spawn(lv_obj_t* parent, int x, int y, int w, int h);
+    void linkTo(UITextBox* textbox);
+    void hide();
+    bool isVisible();
+    void onEnter(std::function<void(String)> callback);
+    void onCancel(std::function<void()> callback);
+    void setButtonSize(int min_width, int min_height);
+    lv_obj_t* getObject() { return keyboard; }
+};
+
+// ==================== Implementation ====================
+
+void SimpleUI_init() {}
 
 void SimpleUI_update() {
     lv_task_handler();
 }
 
-// ==================== Screen Implementation ====================
-UIScreen::UIScreen() : screen(nullptr) {
-    // Don't create LVGL objects in constructor - do it in load()
-}
+UIScreen::UIScreen() : screen(nullptr) {}
 
 UIScreen::~UIScreen() {
     if (screen && lv_obj_is_valid(screen)) {
@@ -23,18 +129,15 @@ UIScreen::~UIScreen() {
 }
 
 void UIScreen::load() {
-    // Create screen if it doesn't exist
     if (!screen) {
         screen = lv_obj_create(NULL);
         lv_obj_set_style_bg_color(screen, lv_color_hex(0x1a1a1a), 0);
-        // Disable scrolling on main screen
         lv_obj_clear_flag(screen, LV_OBJ_FLAG_SCROLLABLE);
     }
     lv_scr_load(screen);
 }
 
 void UIScreen::setBackgroundColor(uint8_t r, uint8_t g, uint8_t b) {
-    // Create screen if it doesn't exist
     if (!screen) {
         screen = lv_obj_create(NULL);
     }
@@ -42,7 +145,6 @@ void UIScreen::setBackgroundColor(uint8_t r, uint8_t g, uint8_t b) {
     lv_obj_set_style_bg_color(screen, lv_color_hex(color), 0);
 }
 
-// ==================== Label Implementation ====================
 UILabel::UILabel() : label(nullptr) {}
 
 UILabel::~UILabel() {
@@ -102,7 +204,6 @@ void UILabel::show() {
     if (label) lv_obj_clear_flag(label, LV_OBJ_FLAG_HIDDEN);
 }
 
-// ==================== Button Implementation ====================
 UIButton::UIButton() : btn(nullptr), label(nullptr) {}
 
 UIButton::~UIButton() {
@@ -118,12 +219,10 @@ void UIButton::create(lv_obj_t* parent, const char* text, int x, int y, int w, i
     lv_obj_set_pos(btn, x, y);
     lv_obj_set_size(btn, w, h);
     
-    // Style
     lv_obj_set_style_radius(btn, 10, 0);
     lv_obj_set_style_bg_color(btn, lv_color_hex(0x2196F3), 0);
     lv_obj_set_style_pad_all(btn, 10, 0);
     
-    // Label
     label = lv_label_create(btn);
     lv_label_set_text(label, text);
     lv_obj_center(label);
@@ -173,7 +272,6 @@ void UIButton::disable() {
     if (btn) lv_obj_add_state(btn, LV_STATE_DISABLED);
 }
 
-// ==================== TextBox Implementation ====================
 UITextBox::UITextBox() : textarea(nullptr) {}
 
 UITextBox::~UITextBox() {
@@ -191,7 +289,6 @@ void UITextBox::create(lv_obj_t* parent, int x, int y, int w, int h) {
     lv_textarea_set_one_line(textarea, true);
     lv_textarea_set_max_length(textarea, 64);
     
-    // Style
     lv_obj_set_style_radius(textarea, 8, 0);
     lv_obj_set_style_bg_color(textarea, lv_color_hex(0x2a2a2a), 0);
     lv_obj_set_style_border_color(textarea, lv_color_hex(0x555555), 0);
@@ -199,11 +296,15 @@ void UITextBox::create(lv_obj_t* parent, int x, int y, int w, int h) {
     lv_obj_set_style_text_color(textarea, lv_color_hex(0xffffff), 0);
     lv_obj_set_style_pad_all(textarea, 8, 0);
     
-    // Focused style
     lv_obj_set_style_border_color(textarea, lv_color_hex(0x2196F3), LV_STATE_FOCUSED);
     lv_obj_set_style_border_width(textarea, 3, LV_STATE_FOCUSED);
     
-    // Register events
+    lv_obj_set_style_border_color(textarea, lv_color_hex(0xffffff), LV_PART_CURSOR);
+    lv_obj_set_style_border_width(textarea, 2, LV_PART_CURSOR);
+    lv_obj_set_style_bg_color(textarea, lv_color_hex(0xffffff), LV_PART_CURSOR);
+    
+    lv_obj_set_style_anim_time(textarea, 500, LV_PART_CURSOR);
+    
     lv_obj_add_event_cb(textarea, event_handler, LV_EVENT_CLICKED, this);
     lv_obj_add_event_cb(textarea, event_handler, LV_EVENT_READY, this);
 }
@@ -221,8 +322,14 @@ void UITextBox::event_handler(lv_event_t* e) {
     else if (code == LV_EVENT_READY) {
         Serial.println("TextBox: Ready (Enter pressed)");
         if (instance) {
-            instance->triggerSubmit();
+            instance->submitText();
         }
+    }
+}
+
+void UITextBox::submitText() {
+    if (submitCallback) {
+        submitCallback(getText());
     }
 }
 
@@ -271,13 +378,14 @@ void UITextBox::onSubmit(std::function<void(String)> callback) {
     submitCallback = callback;
 }
 
-void UITextBox::triggerSubmit() {
-    if (submitCallback) {
-        submitCallback(getText());
+void UITextBox::setCursorColor(uint8_t r, uint8_t g, uint8_t b) {
+    if (textarea) {
+        uint32_t color = (r << 16) | (g << 8) | b;
+        lv_obj_set_style_border_color(textarea, lv_color_hex(color), LV_PART_CURSOR);
+        lv_obj_set_style_bg_color(textarea, lv_color_hex(color), LV_PART_CURSOR);
     }
 }
 
-// ==================== Keyboard Implementation ====================
 UIKeyboard::UIKeyboard() : keyboard(nullptr), linkedTextBox(nullptr), visible(false) {}
 
 UIKeyboard::~UIKeyboard() {
@@ -289,7 +397,6 @@ UIKeyboard::~UIKeyboard() {
 void UIKeyboard::spawn(lv_obj_t* parent, int x, int y, int w, int h) {
     if (!parent) parent = lv_scr_act();
     
-    // Delete existing keyboard if valid
     if (keyboard && lv_obj_is_valid(keyboard)) {
         lv_obj_del(keyboard);
         keyboard = nullptr;
@@ -297,52 +404,29 @@ void UIKeyboard::spawn(lv_obj_t* parent, int x, int y, int w, int h) {
     
     keyboard = lv_keyboard_create(parent);
     
-    // Get parent dimensions
-    int parent_w = lv_obj_get_width(parent);
-    int parent_h = lv_obj_get_height(parent);
-    
-    // Use full screen width (edge to edge) and half screen height
-    // Let the keyboard extend to the edges on left and right
-    int keyboard_w = parent_w;  // Full width
-    int keyboard_h = parent_h / 2;  // Half screen height
-    
-    lv_obj_set_size(keyboard, keyboard_w, keyboard_h);
-    
-    // Position at bottom, flush with both edges (center horizontally)
-    lv_obj_align(keyboard, LV_ALIGN_BOTTOM_MID, 0, 0);
-    
-    // Remove all padding around the keyboard to use full width
-    lv_obj_set_style_pad_all(keyboard, 0, 0);
-    lv_obj_set_style_pad_gap(keyboard, 2, 0);  // Reduced gap for bigger buttons
-    
-    // Main keyboard background style - extend to edges
-    lv_obj_set_style_bg_color(keyboard, lv_color_hex(0x1a1a1a), 0);
-    lv_obj_set_style_border_width(keyboard, 0, 0);
-    lv_obj_set_style_radius(keyboard, 0, 0);  // No rounded corners at bottom
-    
-    // Make the keyboard buttons much bigger - fill the space
-    // Bigger padding for bigger touch targets
-    lv_obj_set_style_pad_all(keyboard, 15, LV_PART_ITEMS);  // Increased padding
-    lv_obj_set_style_pad_gap(keyboard, 2, LV_PART_ITEMS);   // Minimal gap between buttons
-    lv_obj_set_style_min_height(keyboard, (keyboard_h / 4) - 10, LV_PART_ITEMS);  // Dynamic min height based on keyboard height
-    lv_obj_set_style_min_width(keyboard, (keyboard_w / 10) - 5, LV_PART_ITEMS);   // Dynamic min width
-    
-    // Button colors
-    lv_obj_set_style_bg_color(keyboard, lv_color_hex(0x333333), LV_PART_ITEMS);
-    lv_obj_set_style_radius(keyboard, 8, LV_PART_ITEMS);
-    lv_obj_set_style_text_color(keyboard, lv_color_hex(0xffffff), LV_PART_ITEMS);
-    
-    // Larger text for better readability on bigger buttons
-    lv_obj_set_style_text_font(keyboard, &lv_font_montserrat_20, LV_PART_ITEMS);
-    
-    // Pressed button style
-    lv_obj_set_style_bg_color(keyboard, lv_color_hex(0x2196F3), LV_PART_ITEMS | LV_STATE_PRESSED);
-    
-    // Make sure it's on top
+    lv_obj_set_size(keyboard, w, h);
+    lv_obj_set_pos(keyboard, x, y);
     lv_obj_move_foreground(keyboard);
     
-    // Force a layout update to ensure buttons fill the space
-    lv_obj_update_layout(keyboard);
+    lv_obj_set_style_pad_all(keyboard, 0, 0);
+    lv_obj_set_style_pad_gap(keyboard, 2, 0);
+    
+    lv_obj_set_style_bg_color(keyboard, lv_color_hex(0x1a1a1a), 0);
+    lv_obj_set_style_border_width(keyboard, 0, 0);
+    
+    lv_obj_set_style_bg_color(keyboard, lv_color_hex(0x333333), LV_PART_ITEMS);
+    lv_obj_set_style_radius(keyboard, 6, LV_PART_ITEMS);
+    lv_obj_set_style_text_color(keyboard, lv_color_hex(0xffffff), LV_PART_ITEMS);
+    
+    lv_obj_set_style_pad_all(keyboard, 8, LV_PART_ITEMS);
+    lv_obj_set_style_pad_gap(keyboard, 2, LV_PART_ITEMS);
+    
+    lv_obj_set_style_text_font(keyboard, &lv_font_montserrat_20, LV_PART_ITEMS);
+    
+    lv_obj_set_style_min_height(keyboard, 40, LV_PART_ITEMS);
+    lv_obj_set_style_min_width(keyboard, 40, LV_PART_ITEMS);
+    
+    lv_obj_set_style_bg_color(keyboard, lv_color_hex(0x2196F3), LV_PART_ITEMS | LV_STATE_PRESSED);
     
     lv_obj_add_event_cb(keyboard, event_handler, LV_EVENT_ALL, this);
     
@@ -351,10 +435,9 @@ void UIKeyboard::spawn(lv_obj_t* parent, int x, int y, int w, int h) {
 
 void UIKeyboard::linkTo(UITextBox* textbox) {
     linkedTextBox = textbox;
-    if (keyboard && textbox && textbox->textarea) {
-        lv_keyboard_set_textarea(keyboard, textbox->textarea);
-        // Focus the textarea when keyboard is linked
-        lv_obj_add_state(textbox->textarea, LV_STATE_FOCUSED);
+    if (keyboard && textbox && textbox->getObject()) {
+        lv_keyboard_set_textarea(keyboard, textbox->getObject());
+        lv_obj_add_state(textbox->getObject(), LV_STATE_FOCUSED);
     }
 }
 
@@ -363,7 +446,6 @@ void UIKeyboard::event_handler(lv_event_t* e) {
     lv_event_code_t code = lv_event_get_code(e);
     
     if (code == LV_EVENT_READY) {
-        // Enter key pressed
         Serial.println("Keyboard: Enter pressed");
         if (instance && instance->linkedTextBox) {
             String text = instance->linkedTextBox->getText();
@@ -371,14 +453,14 @@ void UIKeyboard::event_handler(lv_event_t* e) {
             if (instance->enterCallback) {
                 instance->enterCallback(text);
             }
-            instance->linkedTextBox->triggerSubmit();
+            // Use the public submitText() method instead of private triggerSubmit()
+            instance->linkedTextBox->submitText();
         }
         if (instance) {
             instance->hide();
         }
     }
     else if (code == LV_EVENT_CANCEL) {
-        // Cancel/close button pressed
         Serial.println("Keyboard: Cancel pressed");
         if (instance && instance->cancelCallback) {
             instance->cancelCallback();
@@ -407,3 +489,12 @@ void UIKeyboard::onEnter(std::function<void(String)> callback) {
 void UIKeyboard::onCancel(std::function<void()> callback) {
     cancelCallback = callback;
 }
+
+void UIKeyboard::setButtonSize(int min_width, int min_height) {
+    if (keyboard) {
+        lv_obj_set_style_min_height(keyboard, min_height, LV_PART_ITEMS);
+        lv_obj_set_style_min_width(keyboard, min_width, LV_PART_ITEMS);
+    }
+}
+
+#endif // SIMPLEUI_H
