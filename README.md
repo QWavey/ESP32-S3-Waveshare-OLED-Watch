@@ -1,121 +1,93 @@
+<p align="center">
+  <a href="https://www.waveshare.com/wiki/ESP32-S3-Touch-AMOLED-2.06" target="_blank">
+    <img width="270" height="203" alt="ESP32-S3-Touch-AMOLED-2.06 board" src="https://github.com/user-attachments/assets/3c2f57c0-1153-4300-82ca-c60a3f09c733" />
+  </a>
+</p>
 
+# ESP32-S3 AMOLED 2.06" display library
 
-# Simpler ESP32-S3 AMOLED 2.06" Display Library
+An Arduino library for the Waveshare ESP32-S3 Touch AMOLED 2.06" display. It handles the FT3168 touch controller and the display, and it integrates with LVGL. It provides two classes:
 
-A easier to use library for controlling the ESP32-S3 AMOLED 2.06" display with FT3168 touch controller and LVGL integration.
-
-<a href="https://www.waveshare.com/wiki/ESP32-S3-Touch-AMOLED-2.06" target="_blank">
-  <img
-    width="270"
-    height="203"
-    alt="image"
-    src="https://github.com/user-attachments/assets/3c2f57c0-1153-4300-82ca-c60a3f09c733"
-  />
-</a>
-
-
-# Arduino LVGL Touch & Display Library
-
-This repository provides two C++ classes for Arduino/ESP32 projects:
-
-* **`TouchClass`** – Handles capacitive touch input via the FT3168 controller over I2C.
-* **`ScreenClass`** – Handles display output using the Arduino GFX & DriveBus libraries, integrated with **LVGL** (Light and Versatile Graphics Library).
-
-These classes allow seamless integration of touchscreen displays with LVGL for creating interactive GUI applications.
-
----
-
-
-NOTE:
-WHEN USING SOME EXAMPLE CODES, YOU NEED TO DO:
-
-
-| Setting              | Value                                   |
-|----------------------|------------------------------------------|
-| **Board**            | ESP32S3 Dev Module                      |
-| **Flash Size**       | 32MB (256Mb)                            |
-| **PSRAM**            | OPI PSRAM                               |
-| **Partition Scheme** | Huge APP (3MB No OTA / 1MB SPIFFS)      |
-| **CPU Frequency**    | 240MHz (WiFi)                           |
-| **USB CDC On Boot**  | Enabled                                 |
-
+- **`TouchClass`** reads capacitive touch from the FT3168 over I2C.
+- **`ScreenClass`** drives the display through Arduino GFX and Arduino DriveBus, and renders with LVGL.
 
 ## Features
 
 ### TouchClass
 
-* Initializes the FT3168 touch controller via I2C.
-* Supports automatic detection of the touch controller address.
-* Integrates with LVGL as an input device.
-* Provides the following functions:
-
-  * `isTouched()` – Quickly check if the screen is currently touched.
-  * `getTouchPoint(x, y)` – Retrieve raw touch coordinates.
+- Initializes the FT3168 over I2C and detects its address automatically.
+- Registers as an LVGL input device.
+- `isTouched()`: checks whether the screen is being touched right now.
+- `getTouchPoint(x, y)`: returns the raw touch coordinates.
 
 ### ScreenClass
 
-* Initializes your display hardware using **Arduino GFX + DriveBus**.
-* Integrates with LVGL for GUI rendering.
-* Provides helper functions for common UI elements (STILL WIP AND DONT FULLY WORK RIGHT NOW):
-
-  * `button_create()` – Create LVGL buttons.
-  * `slider_create()` – Create LVGL sliders.
-  * `checkbox_create()` – Create LVGL checkboxes.
-* Supports turning the display **on/off** while keeping LVGL initialized.
-
----
-
-
+- Initializes the display hardware through Arduino GFX and DriveBus.
+- Renders through LVGL.
+- Turns the display on and off while LVGL stays initialized.
+- The helpers `button_create()`, `slider_create()`, and `checkbox_create()` are **work in progress and don't fully work yet**.
 
 ## Requirements
 
-* **Arduino IDE** or **PlatformIO**
-### Required Dependencies
+- Arduino IDE or PlatformIO
+- LVGL v9.x (other versions cause compile errors)
 
-| Demo                        | Basic Description                                                                                                                                             | Dependency Library      |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
-| 01_HelloWorld               | Demonstrates the basic graphics library functions and can also be used to test the basic performance of display screens and the display effect of random text | GFX_Library_for_Arduino |
-| 02_GFX_AsciiTable           | Prints ASCII characters in rows and columns on the display screen according to the screen size                                                                | GFX_Library_for_Arduino |
-| 03_LVGL_PCF85063_simpleTime | LVGL library displays the current time                                                                                                                        | LVGL, SensorLib         |
-| 04_LVGL_QMI8658_ui          | LVGL draws acceleration line chart                                                                                                                            | LVGL, SensorLib         |
-| 05_LVGL_AXP2101_ADC_Data    | LVGL displays PMIC data                                                                                                                                       | LVGL, XPowersLib        |
-| 06_LVGL_Arduino_v9          | LVGL demonstration                                                                                                                                            | LVGL, Arduino_DriveBus  |
-| 07_LVGL_SD_Test             | LVGL displays the contents of TF card files                                                                                                                   | LVGL                    |
-| 08_ES8311                   | ES8311 driver demo, playing simple audio                                                                                                                      | —                       |
+### Board settings for the examples
 
-**Important:** You also need to create a `pin_config.h` file in the same directory with your pin definitions.
+| Setting | Value |
+|---|---|
+| **Board** | ESP32S3 Dev Module |
+| **Flash size** | 32MB (256Mb) |
+| **PSRAM** | OPI PSRAM |
+| **Partition scheme** | Huge APP (3MB No OTA / 1MB SPIFFS) |
+| **CPU frequency** | 240MHz (WiFi) |
+| **USB CDC on boot** | Enabled |
 
-## LINKS
+### Dependencies
 
-- **ARDUINO LIBS DOWNLOAD:** https://github.com/waveshareteam/ESP32-S3-Touch-AMOLED-2.06/tree/main/examples/Arduino-v3.2.0/libraries
-- **ESP-IDF LIBS DOWNLOAD:** https://github.com/waveshareteam/ESP32-S3-Touch-AMOLED-2.06/tree/main/examples/ESP-IDF-v5.4.2
-- **WIKI:** https://www.waveshare.com/wiki/ESP32-S3-Touch-AMOLED-2.06
+| Demo | What it shows | Dependency library |
+| --- | --- | --- |
+| 01_HelloWorld | Basic graphics functions. Also a quick way to test display performance and rendering of random text | GFX_Library_for_Arduino |
+| 02_GFX_AsciiTable | Prints the ASCII characters in rows and columns, sized to the screen | GFX_Library_for_Arduino |
+| 03_LVGL_PCF85063_simpleTime | LVGL displays the current time | LVGL, SensorLib |
+| 04_LVGL_QMI8658_ui | LVGL draws an acceleration line chart | LVGL, SensorLib |
+| 05_LVGL_AXP2101_ADC_Data | LVGL displays PMIC data | LVGL, XPowersLib |
+| 06_LVGL_Arduino_v9 | LVGL demo | LVGL, Arduino_DriveBus |
+| 07_LVGL_SD_Test | LVGL displays the contents of files on the TF card | LVGL |
+| 08_ES8311 | ES8311 driver demo, plays a simple audio clip | none |
 
+You also need a `pin_config.h` file in the same directory, with your pin definitions.
 
+## Links
 
+- **Arduino libraries:** https://github.com/waveshareteam/ESP32-S3-Touch-AMOLED-2.06/tree/main/examples/Arduino-v3.2.0/libraries
+- **ESP-IDF libraries:** https://github.com/waveshareteam/ESP32-S3-Touch-AMOLED-2.06/tree/main/examples/ESP-IDF-v5.4.2
+- **Wiki:** https://www.waveshare.com/wiki/ESP32-S3-Touch-AMOLED-2.06
 
 ## Installation
 
-1. Download or clone this repository
-2. Copy the files to your Arduino libraries directory:
+1. Download or clone this repository.
+2. Copy it into your Arduino libraries folder:
    - Windows: `Documents\Arduino\libraries\ESP_TOUCH_DISPLAY\`
-   - Mac: `~/Documents/Arduino/libraries/ESP_TOUCH_DISPLAY/`
+   - macOS: `~/Documents/Arduino/libraries/ESP_TOUCH_DISPLAY/`
    - Linux: `~/Arduino/libraries/ESP_TOUCH_DISPLAY/`
-3. Restart Arduino IDE
-4. Install dependencies (see table above
+3. Restart the Arduino IDE.
+4. Install the dependencies listed above.
 
 ### Compilation errors
-- Ensure you're using LVGL v9.x
-- Update all dependency libraries to latest versions
-- Check that global instances are declared properly
+
+- Use LVGL v9.x.
+- Update all dependency libraries to their latest versions.
+- Make sure global instances are declared properly.
 
 ## License
 
-This library is provided as-is for use with the ESP32-S3 AMOLED 2.06" display.
+Provided as-is, for use with the ESP32-S3 AMOLED 2.06" display.
 
 ## Contributing
 
-Contributions are welcome! Please submit issues and pull requests on the project repository
+Issues and pull requests are welcome.
 
+## Status
 
-THESE ARE ALL SUBJECT TO CHANGE
+Work in progress. The API may change.
