@@ -426,30 +426,44 @@ bool SDMounter::renameFile(const char* old_path, const char* new_path) {
 }
 
 bool SDMounter::copyFile(const char* src, const char* dst) {
+    // Refuse to copy a file onto itself. Opening the destination for writing
+    // would truncate the source before it is read.
+    String src_path = getFullPath(src);
+    String dst_path = getFullPath(dst);
+    if (src_path == dst_path) {
+        setError(40, "Copy source and destination are the same file");
+        return false;
+    }
+
     File src_file = openFile(src, FILE_READ);
     if (!src_file) return false;
-    
+    size_t expected = src_file.size();
+
     File dst_file = openFile(dst, FILE_WRITE);
     if (!dst_file) {
         src_file.close();
         return false;
     }
-    
+
     size_t copied = copyFileInternal(src_file, dst_file);
-    
+
     src_file.close();
     dst_file.close();
-    
-    if (copied == 0) {
-        setError(20, "Copy failed - no bytes copied");
+
+    // Success means every byte of the source was written. moveFile() deletes
+    // the source based on this result, so a short copy must not pass.
+    if (copied != expected) {
+        SD_MMC.remove(dst_path.c_str()); // do not leave a truncated copy behind
+        setError(20, "Copy failed - incomplete copy");
         return false;
     }
-    
+
     clearError();
     return true;
 }
 
 bool SDMounter::moveFile(const char* src, const char* dst) {
+    // copyFile() only succeeds for a complete copy, so the source is deleted only after that
     if (!copyFile(src, dst)) return false;
     return deleteFile(src);
 }
