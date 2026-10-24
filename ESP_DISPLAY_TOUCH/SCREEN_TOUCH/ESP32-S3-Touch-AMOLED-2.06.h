@@ -150,7 +150,9 @@ private:
             int32_t x = instance->readRawXSafe();
             int32_t y = instance->readRawYSafe();
             
-            if (x > 10 && y > 10 && x < 4000 && y < 4000) {
+            // Accept any point inside the panel, including the edges. A zero from
+            // readRawXSafe() means "no reading" (I2C error), so zero stays rejected.
+            if (x > 0 && y > 0 && x < LCD_WIDTH && y < LCD_HEIGHT) {
                 data->state = LV_INDEV_STATE_PRESSED;
                 data->point.x = x;
                 data->point.y = y;
