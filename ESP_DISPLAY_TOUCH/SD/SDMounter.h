@@ -116,7 +116,8 @@ private:
     void triggerCardInsertedCallback();
     void triggerCardRemovedCallback();
     size_t copyFileInternal(File& src, File& dst);
-    bool deleteDirectoryRecursive(const char* path);
+    bool deleteDirectoryRecursive(const char* path, uint8_t depth = 0);
+    String listDirTree(const char* path, bool recursive, uint8_t depth, size_t& budget);
     bool checkCardPresent();
 };
 

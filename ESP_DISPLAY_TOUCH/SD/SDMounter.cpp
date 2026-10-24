@@ -4,6 +4,11 @@
 // Global instance definition
 SDMounter SDCard;
 
+// Limits that stop card contents from exhausting heap or stack
+static const size_t kMaxReadFileBytes = 64 * 1024; // readFile(path) refuses larger files
+static const size_t kMaxListEntries = 512;         // entries returned by one listing
+static const uint8_t kMaxDirDepth = 8;             // recursion depth for listing and delete
+
 SDMounter::SDMounter() 
     : mounted(false), 
       auto_mount_enabled(false),
@@ -258,6 +263,13 @@ String SDMounter::readFile(const char* path) {
     File file = openFile(path, FILE_READ);
     if (!file) return "";
     
+    // Refuse files that would not fit the heap, instead of growing the String until it fails
+    if (file.size() > kMaxReadFileBytes) {
+        file.close();
+        setError(46, "File too large for readFile(), use readFile(path, buffer, len)");
+        return "";
+    }
+
     String content = "";
     while (file.available()) {
         content += (char)file.read();
@@ -582,24 +594,42 @@ String SDMounter::listDir(const char* path, bool recursive) {
         setError(26, "SD card not mounted");
         return "";
     }
-    
+
+    clearError();
+    size_t budget = kMaxListEntries;
+    return listDirTree(path, recursive, 0, budget);
+}
+
+String SDMounter::listDirTree(const char* path, bool recursive, uint8_t depth, size_t& budget) {
     String full_path = getFullPath(path);
     String listing = "";
-    
+
     File root = SD_MMC.open(full_path.c_str());
     if (!root || !root.isDirectory()) {
         setError(27, String("Not a directory: ") + full_path);
         return "";
     }
-    
+
     File file = root.openNextFile();
     while (file) {
+        // The shared budget caps the total number of entries across all recursion levels
+        if (budget == 0) {
+            setError(47, "Directory listing truncated at entry limit");
+            file.close();
+            break;
+        }
+        budget--;
+
         if (file.isDirectory()) {
             listing += "DIR : " + String(file.name()) + "\n";
             if (recursive) {
-                String sub_listing = listDir(file.name(), true);
-                if (sub_listing.length() > 0) {
-                    listing += sub_listing;
+                if (depth >= kMaxDirDepth) {
+                    setError(48, "Directory nesting too deep, not expanded");
+                } else {
+                    String sub_listing = listDirTree(file.name(), true, depth + 1, budget);
+                    if (sub_listing.length() > 0) {
+                        listing += sub_listing;
+                    }
                 }
             }
         } else {
@@ -609,36 +639,45 @@ String SDMounter::listDir(const char* path, bool recursive) {
         file = root.openNextFile();
     }
     root.close();
-    
-    clearError();
+
     return listing;
 }
 
 std::vector<String> SDMounter::listDirVector(const char* path) {
     std::vector<String> items;
-    
+
     if (!mounted) {
         setError(28, "SD card not mounted");
         return items;
     }
-    
+
     String full_path = getFullPath(path);
     File root = SD_MMC.open(full_path.c_str());
-    
+
     if (!root || !root.isDirectory()) {
         setError(29, String("Not a directory: ") + full_path);
         return items;
     }
-    
+
+    bool truncated = false;
     File file = root.openNextFile();
     while (file) {
+        if (items.size() >= kMaxListEntries) {
+            truncated = true;
+            file.close();
+            break;
+        }
         items.push_back(String(file.name()));
         file.close();
         file = root.openNextFile();
     }
     root.close();
-    
-    clearError();
+
+    if (truncated) {
+        setError(47, "Directory listing truncated at entry limit");
+    } else {
+        clearError();
+    }
     return items;
 }
 
@@ -1043,19 +1082,22 @@ size_t SDMounter::copyFileInternal(File& src, File& dst) {
     return total;
 }
 
-bool SDMounter::deleteDirectoryRecursive(const char* path) {
+bool SDMounter::deleteDirectoryRecursive(const char* path, uint8_t depth) {
+    // Refuse to recurse without bound: a deep tree would exhaust the task stack
+    if (depth > kMaxDirDepth) return false;
+
     File dir = SD_MMC.open(path);
     if (!dir || !dir.isDirectory()) {
         return false;
     }
-    
+
     File file = dir.openNextFile();
     while (file) {
         String file_path = String(path) + "/" + String(file.name());
-        
+
         if (file.isDirectory()) {
             file.close();
-            if (!deleteDirectoryRecursive(file_path.c_str())) {
+            if (!deleteDirectoryRecursive(file_path.c_str(), depth + 1)) {
                 dir.close();
                 return false;
             }
@@ -1066,10 +1108,10 @@ bool SDMounter::deleteDirectoryRecursive(const char* path) {
                 return false;
             }
         }
-        
+
         file = dir.openNextFile();
     }
     dir.close();
-    
+
     return SD_MMC.rmdir(path);
 }
