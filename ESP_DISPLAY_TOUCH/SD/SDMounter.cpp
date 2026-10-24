@@ -368,24 +368,64 @@ bool SDMounter::truncateFile(const char* path, size_t size) {
         return false;
     }
     
-    // Copy only 'size' bytes
+    // Copy only 'size' bytes, checking every read and write
     uint8_t buffer[512];
     size_t remaining = size;
-    
+    bool ok = true;
+
     while (remaining > 0 && src.available()) {
         size_t to_read = (remaining < sizeof(buffer)) ? remaining : sizeof(buffer);
         size_t bytes_read = src.read(buffer, to_read);
-        dst.write(buffer, bytes_read);
+        if (bytes_read == 0 || dst.write(buffer, bytes_read) != bytes_read) {
+            ok = false;
+            break;
+        }
         remaining -= bytes_read;
     }
-    
+
     src.close();
     dst.close();
-    
-    // Replace original with truncated version
-    SD_MMC.remove(full_path.c_str());
-    SD_MMC.rename(temp_path.c_str(), full_path.c_str());
-    
+
+    // The replacement must hold exactly 'size' bytes before the original is touched
+    if (remaining > 0) ok = false;
+    if (ok) {
+        File check = SD_MMC.open(temp_path.c_str(), FILE_READ);
+        ok = (check && check.size() == size);
+        check.close();
+    }
+    if (!ok) {
+        SD_MMC.remove(temp_path.c_str());
+        setError(41, "Truncate failed - replacement could not be written");
+        return false;
+    }
+
+    // Keep the original under a backup name until the replacement is in place.
+    // An existing file with the backup name may be user data, so never delete it.
+    String backup_path = full_path + ".bak";
+    if (SD_MMC.exists(backup_path.c_str())) {
+        SD_MMC.remove(temp_path.c_str());
+        setError(42, String("Truncate failed - backup name already in use: ") + backup_path);
+        return false;
+    }
+    if (!SD_MMC.rename(full_path.c_str(), backup_path.c_str())) {
+        SD_MMC.remove(temp_path.c_str());
+        setError(43, "Truncate failed - could not move original aside");
+        return false;
+    }
+    if (!SD_MMC.rename(temp_path.c_str(), full_path.c_str())) {
+        // Put the original back before reporting failure
+        SD_MMC.rename(backup_path.c_str(), full_path.c_str());
+        SD_MMC.remove(temp_path.c_str());
+        setError(44, "Truncate failed - could not move replacement into place");
+        return false;
+    }
+
+    if (!SD_MMC.remove(backup_path.c_str())) {
+        // The file is truncated; only the old copy is left behind
+        setError(45, String("Truncated, but backup was left behind: ") + backup_path);
+        return true;
+    }
+
     clearError();
     return true;
 }
