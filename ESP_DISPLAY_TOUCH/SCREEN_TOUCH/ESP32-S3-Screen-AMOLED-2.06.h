@@ -12,12 +12,19 @@ public:
     void on() {
         if (!gfx) initDisplay();
         gfx->begin();
+        panelOn() = true;
         gfx->fillScreen(RGB565_BLACK);
+        // LVGL only redraws areas that changed, so mark the active screen dirty
+        // to repaint the whole UI once the panel is back on.
+        lv_obj_t* scr = lv_screen_active();
+        if (scr) lv_obj_invalidate(scr);
         Serial.println("Display powered on");
     }
 
     void off() {
         if (gfx) {
+            // flush_cb stops drawing while the panel is off
+            panelOn() = false;
             gfx->fillScreen(RGB565_BLACK);
             Serial.println("Display powered off");
         }
@@ -59,11 +66,19 @@ private:
     lv_display_t* disp;
     lv_color_t buf[LCD_WIDTH * 40]; // KEEP original buffer size
 
+    // Panel power state. A function-local static keeps this header C++11-safe (no static inline).
+    static bool& panelOn() {
+        static bool on = true;
+        return on;
+    }
+
     static void flush_cb(lv_display_t* disp, const lv_area_t* area, uint8_t* pixel_map) {
-        Arduino_GFX* gfx = (Arduino_GFX*)lv_display_get_user_data(disp);
-        uint32_t w = area->x2 - area->x1 + 1;
-        uint32_t h = area->y2 - area->y1 + 1;
-        gfx->draw16bitRGBBitmap(area->x1, area->y1, (uint16_t*)pixel_map, w, h);
+        if (panelOn()) {
+            Arduino_GFX* gfx = (Arduino_GFX*)lv_display_get_user_data(disp);
+            uint32_t w = area->x2 - area->x1 + 1;
+            uint32_t h = area->y2 - area->y1 + 1;
+            gfx->draw16bitRGBBitmap(area->x1, area->y1, (uint16_t*)pixel_map, w, h);
+        }
         lv_display_flush_ready(disp);
     }
 
