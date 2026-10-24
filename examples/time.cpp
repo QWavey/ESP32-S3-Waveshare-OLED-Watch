@@ -5,6 +5,7 @@
 #include "ESP32-S3-Screen-AMOLED-2.06.h"
 #include "ESP32-S3-Touch-AMOLED-2.06.h"
 #include "SensorPCF85063.hpp"
+#include "wifi_secrets.h" // copy wifi_secrets.example.h to wifi_secrets.h and fill it in (git-ignored)
 
 // -------------------- Objects --------------------
 ScreenClass Screen;
@@ -16,8 +17,8 @@ unsigned long lastMillis = 0;
 unsigned long last_tick = 0;
 
 // -------------------- Wi-Fi & NTP --------------------
-const char* ssid     = "YOUR_WIFI_SSID";
-const char* password = "YOUR_WIFI_PASSWORD";
+const char* ssid     = WIFI_SSID;
+const char* password = WIFI_PASSWORD;
 const char* ntpServer = "pool.ntp.org";
 
 // -------------------- Timezone (easy to change) --------------------

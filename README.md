@@ -58,6 +58,8 @@ An Arduino library for the Waveshare ESP32-S3 Touch AMOLED 2.06" display. It han
 
 You also need a `pin_config.h` file in the same directory, with your pin definitions.
 
+The Wi-Fi example (`examples/time.cpp`) reads its credentials from `wifi_secrets.h`. Copy `examples/wifi_secrets.example.h` to `examples/wifi_secrets.h` and enter your network name and password. Both `pin_config.h` and `wifi_secrets.h` are listed in `.gitignore`, so keep them out of commits.
+
 ## Links
 
 - **Arduino libraries:** https://github.com/waveshareteam/ESP32-S3-Touch-AMOLED-2.06/tree/main/examples/Arduino-v3.2.0/libraries
