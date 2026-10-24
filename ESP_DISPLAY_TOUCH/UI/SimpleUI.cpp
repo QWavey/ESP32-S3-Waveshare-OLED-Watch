@@ -317,7 +317,13 @@ void UIKeyboard::spawn(lv_obj_t* parent, int x, int y, int w, int h) {
     lv_obj_set_style_bg_color(keyboard, lv_color_hex(0x2196F3), LV_PART_ITEMS | LV_STATE_PRESSED);
     
     lv_obj_add_event_cb(keyboard, event_handler, LV_EVENT_ALL, this);
-    
+
+    // spawn() creates a new keyboard object, so re-apply the textbox link
+    // (this also covers a linkTo() call made before the first spawn()).
+    if (linkedTextBox && linkedTextBox->getObject()) {
+        lv_keyboard_set_textarea(keyboard, linkedTextBox->getObject());
+    }
+
     visible = true;
 }
 
