@@ -287,7 +287,12 @@ void AMOLEDBrightness::updateAnimation() {
     
     // Calculate current brightness
     int16_t diff = _animTargetLevel - _animStartLevel;
-    uint8_t currentLevel = _animStartLevel + (uint8_t)(diff * easedProgress);
+    // diff is negative on a fade down. Do the sum in a signed type and clamp
+    // before narrowing, because casting a negative float to uint8_t is undefined.
+    int level = (int)_animStartLevel + (int)(diff * easedProgress);
+    if (level < 0) level = 0;
+    if (level > 100) level = 100;
+    uint8_t currentLevel = (uint8_t)level;
     
     // Update display
     updateOverlay(currentLevel);
