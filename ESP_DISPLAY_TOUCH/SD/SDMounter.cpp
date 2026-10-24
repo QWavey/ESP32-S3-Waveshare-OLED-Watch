@@ -35,15 +35,14 @@ bool SDMounter::mount(bool format_if_failed, const char* mp, bool mode1bit) {
     SD_MMC.setPins(SDMMC_CLK, SDMMC_CMD, SDMMC_DATA);  // Pins from pin_config.h
     
     if (!SD_MMC.begin(mp, mode1bit)) {
+        // format_if_failed is accepted for compatibility, but no format is performed yet.
+        // Say so in the error instead of claiming an attempt was made.
         if (format_if_failed) {
-            Serial.println("[SDMounter] Mount failed, trying to mount then format...");
-            // Try mounting in a more permissive way, then format
-            setError(4, "SD card mount failed, format not attempted (card may be unformatted)");
-            return false;
+            setError(4, "SD card mount failed (format_if_failed is not implemented)");
         } else {
             setError(4, "SD card mount failed");
-            return false;
         }
+        return false;
     }
     
     mounted = true;
@@ -100,6 +99,7 @@ bool SDMounter::format() {
     }
     
     // Delete all files and directories in root
+    int failures = 0;
     File file = root.openNextFile();
     while (file) {
         String name = String(file.name());
@@ -109,11 +109,13 @@ bool SDMounter::format() {
             file.close();
             if (!deleteDirectoryRecursive(path.c_str())) {
                 Serial.printf("[SDMounter] Failed to delete directory: %s\n", path.c_str());
+                failures++;
             }
         } else {
             file.close();
             if (!SD_MMC.remove(path.c_str())) {
                 Serial.printf("[SDMounter] Failed to delete file: %s\n", path.c_str());
+                failures++;
             }
         }
         
@@ -121,8 +123,15 @@ bool SDMounter::format() {
     }
     root.close();
     
-    Serial.println("[SDMounter] Format complete (all files deleted)");
     current_dir = "/";
+
+    // Report success only when every entry was removed
+    if (failures > 0) {
+        setError(49, String("Format incomplete: ") + String(failures) + " entries could not be deleted");
+        return false;
+    }
+
+    Serial.println("[SDMounter] Format complete (all files deleted)");
     clearError();
     return true;
 }
@@ -166,7 +175,7 @@ bool SDMounter::check() {
 void SDMounter::autoMount() {
     if (auto_mount_enabled && !mounted) {
         Serial.println("[SDMounter] Auto-mounting SD card...");
-        mount(false, "/sdcard", true);
+        mount(false, mount_point.c_str(), mode_1bit);
     }
 }
 
