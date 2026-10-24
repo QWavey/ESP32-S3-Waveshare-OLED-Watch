@@ -160,9 +160,14 @@ void UIButton::disable() {
     if (btn) lv_obj_add_state(btn, LV_STATE_DISABLED);
 }
 
-UITextBox::UITextBox() : textarea(nullptr) {}
+UITextBox::UITextBox() : textarea(nullptr), linkedKeyboard(nullptr) {}
 
 UITextBox::~UITextBox() {
+    // Detach from the keyboard before this box goes away, so the keyboard never holds a dead pointer
+    if (linkedKeyboard) {
+        linkedKeyboard->unlinkTextBox(this);
+        linkedKeyboard = nullptr;
+    }
     if (textarea && lv_obj_is_valid(textarea)) {
         lv_obj_del(textarea);
     }
@@ -195,12 +200,13 @@ void UITextBox::create(lv_obj_t* parent, int x, int y, int w, int h) {
     
     lv_obj_add_event_cb(textarea, event_handler, LV_EVENT_CLICKED, this);
     lv_obj_add_event_cb(textarea, event_handler, LV_EVENT_READY, this);
+    lv_obj_add_event_cb(textarea, event_handler, LV_EVENT_DELETE, this);
 }
 
 void UITextBox::event_handler(lv_event_t* e) {
     UITextBox* instance = (UITextBox*)lv_event_get_user_data(e);
     lv_event_code_t code = lv_event_get_code(e);
-    
+
     if (code == LV_EVENT_CLICKED) {
         Serial.println("TextBox: Clicked");
         if (instance && instance->clickedCallback) {
@@ -211,6 +217,17 @@ void UITextBox::event_handler(lv_event_t* e) {
         Serial.println("TextBox: Ready (Enter pressed)");
         if (instance) {
             instance->submitText();
+        }
+    }
+    else if (code == LV_EVENT_DELETE) {
+        // The LVGL object is going away (this box is being destroyed, or its parent was deleted).
+        // Drop the keyboard link and forget the object, so nothing uses it afterwards.
+        if (instance) {
+            if (instance->linkedKeyboard) {
+                instance->linkedKeyboard->unlinkTextBox(instance);
+                instance->linkedKeyboard = nullptr;
+            }
+            instance->textarea = nullptr;
         }
     }
 }
@@ -277,6 +294,11 @@ void UITextBox::setCursorColor(uint8_t r, uint8_t g, uint8_t b) {
 UIKeyboard::UIKeyboard() : keyboard(nullptr), linkedTextBox(nullptr), visible(false) {}
 
 UIKeyboard::~UIKeyboard() {
+    // Clear the textbox's back pointer, so it does not call into this keyboard after it is gone
+    if (linkedTextBox) {
+        linkedTextBox->linkedKeyboard = nullptr;
+        linkedTextBox = nullptr;
+    }
     if (keyboard && lv_obj_is_valid(keyboard)) {
         lv_obj_del(keyboard);
     }
@@ -328,10 +350,32 @@ void UIKeyboard::spawn(lv_obj_t* parent, int x, int y, int w, int h) {
 }
 
 void UIKeyboard::linkTo(UITextBox* textbox) {
+    // Detach the previous textbox, and take this textbox away from any other keyboard
+    if (linkedTextBox && linkedTextBox != textbox) {
+        linkedTextBox->linkedKeyboard = nullptr;
+    }
+    if (textbox && textbox->linkedKeyboard && textbox->linkedKeyboard != this) {
+        textbox->linkedKeyboard->unlinkTextBox(textbox);
+    }
+
     linkedTextBox = textbox;
+    if (textbox) {
+        textbox->linkedKeyboard = this;
+    }
+
     if (keyboard && textbox && textbox->getObject()) {
         lv_keyboard_set_textarea(keyboard, textbox->getObject());
         lv_obj_add_state(textbox->getObject(), LV_STATE_FOCUSED);
+    } else if (keyboard && !textbox) {
+        lv_keyboard_set_textarea(keyboard, nullptr);
+    }
+}
+
+void UIKeyboard::unlinkTextBox(UITextBox* textbox) {
+    if (linkedTextBox != textbox) return;
+    linkedTextBox = nullptr;
+    if (keyboard && lv_obj_is_valid(keyboard)) {
+        lv_keyboard_set_textarea(keyboard, nullptr);
     }
 }
 
@@ -347,8 +391,10 @@ void UIKeyboard::event_handler(lv_event_t* e) {
             if (instance->enterCallback) {
                 instance->enterCallback(text);
             }
-            // Use the public submitText() method instead of private triggerSubmit()
-            instance->linkedTextBox->submitText();
+            // The callback may have destroyed the textbox, which clears the link, so read the link again
+            if (instance->linkedTextBox) {
+                instance->linkedTextBox->submitText();
+            }
         }
         if (instance) {
             instance->hide();

@@ -63,14 +63,18 @@ public:
 };
 
 // ==================== TextBox Class ====================
+class UIKeyboard;
+
 class UITextBox {
 private:
     lv_obj_t* textarea;
+    UIKeyboard* linkedKeyboard; // keyboard currently linked to this box, or nullptr
     std::function<void()> clickedCallback;
     std::function<void(String)> submitCallback;
 
     static void event_handler(lv_event_t* e);
-    
+    friend class UIKeyboard;
+
 public:
     UITextBox();
     ~UITextBox();
@@ -98,6 +102,8 @@ private:
     std::function<void()> cancelCallback;
 
     static void event_handler(lv_event_t* e);
+    void unlinkTextBox(UITextBox* textbox);
+    friend class UITextBox;
 
 public:
     UIKeyboard();
