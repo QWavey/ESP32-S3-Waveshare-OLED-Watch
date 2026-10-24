@@ -115,13 +115,13 @@ void UIButton::create(lv_obj_t* parent, const char* text, int x, int y, int w, i
     lv_label_set_text(label, text);
     lv_obj_center(label);
     lv_obj_set_style_text_color(label, lv_color_hex(0xffffff), 0);
+
+    // Register the click handler once. onClick() only stores the callback.
+    lv_obj_add_event_cb(btn, event_handler, LV_EVENT_CLICKED, this);
 }
 
 void UIButton::onClick(std::function<void()> callback) {
     clickCallback = callback;
-    if (btn) {
-        lv_obj_add_event_cb(btn, event_handler, LV_EVENT_CLICKED, this);
-    }
 }
 
 void UIButton::event_handler(lv_event_t* e) {
