@@ -15,7 +15,7 @@ AMOLEDBrightness::AMOLEDBrightness()
 
 // Begin with default screen
 bool AMOLEDBrightness::begin() {
-    _screen = lv_scr_act();
+    _screen = lv_screen_active();
     if (!_screen) {
         Serial.println("[AMOLEDBrightness] Error: No active screen found");
         return false;

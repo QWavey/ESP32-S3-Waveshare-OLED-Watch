@@ -5,14 +5,14 @@
 void SimpleUI_init() {}
 
 void SimpleUI_update() {
-    lv_task_handler();
+    lv_timer_handler();
 }
 
 UIScreen::UIScreen() : screen(nullptr) {}
 
 UIScreen::~UIScreen() {
     if (screen && lv_obj_is_valid(screen)) {
-        lv_obj_del(screen);
+        lv_obj_delete(screen);
     }
 }
 
@@ -22,7 +22,7 @@ void UIScreen::load() {
         lv_obj_set_style_bg_color(screen, lv_color_hex(0x1a1a1a), 0);
         lv_obj_clear_flag(screen, LV_OBJ_FLAG_SCROLLABLE);
     }
-    lv_scr_load(screen);
+    lv_screen_load(screen);
 }
 
 void UIScreen::setBackgroundColor(uint8_t r, uint8_t g, uint8_t b) {
@@ -37,12 +37,12 @@ UILabel::UILabel() : label(nullptr) {}
 
 UILabel::~UILabel() {
     if (label && lv_obj_is_valid(label)) {
-        lv_obj_del(label);
+        lv_obj_delete(label);
     }
 }
 
 void UILabel::create(lv_obj_t* parent, int x, int y, int w) {
-    if (!parent) parent = lv_scr_act();
+    if (!parent) parent = lv_screen_active();
     
     label = lv_label_create(parent);
     lv_obj_set_pos(label, x, y);
@@ -96,14 +96,14 @@ UIButton::UIButton() : btn(nullptr), label(nullptr) {}
 
 UIButton::~UIButton() {
     if (btn && lv_obj_is_valid(btn)) {
-        lv_obj_del(btn);
+        lv_obj_delete(btn);
     }
 }
 
 void UIButton::create(lv_obj_t* parent, const char* text, int x, int y, int w, int h) {
-    if (!parent) parent = lv_scr_act();
+    if (!parent) parent = lv_screen_active();
     
-    btn = lv_btn_create(parent);
+    btn = lv_button_create(parent);
     lv_obj_set_pos(btn, x, y);
     lv_obj_set_size(btn, w, h);
     
@@ -169,12 +169,12 @@ UITextBox::~UITextBox() {
         linkedKeyboard = nullptr;
     }
     if (textarea && lv_obj_is_valid(textarea)) {
-        lv_obj_del(textarea);
+        lv_obj_delete(textarea);
     }
 }
 
 void UITextBox::create(lv_obj_t* parent, int x, int y, int w, int h) {
-    if (!parent) parent = lv_scr_act();
+    if (!parent) parent = lv_screen_active();
     
     textarea = lv_textarea_create(parent);
     lv_obj_set_pos(textarea, x, y);
@@ -196,7 +196,7 @@ void UITextBox::create(lv_obj_t* parent, int x, int y, int w, int h) {
     lv_obj_set_style_border_width(textarea, 2, LV_PART_CURSOR);
     lv_obj_set_style_bg_color(textarea, lv_color_hex(0xffffff), LV_PART_CURSOR);
     
-    lv_obj_set_style_anim_time(textarea, 500, LV_PART_CURSOR);
+    lv_obj_set_style_anim_duration(textarea, 500, LV_PART_CURSOR);
     
     lv_obj_add_event_cb(textarea, event_handler, LV_EVENT_CLICKED, this);
     lv_obj_add_event_cb(textarea, event_handler, LV_EVENT_READY, this);
@@ -300,15 +300,15 @@ UIKeyboard::~UIKeyboard() {
         linkedTextBox = nullptr;
     }
     if (keyboard && lv_obj_is_valid(keyboard)) {
-        lv_obj_del(keyboard);
+        lv_obj_delete(keyboard);
     }
 }
 
 void UIKeyboard::spawn(lv_obj_t* parent, int x, int y, int w, int h) {
-    if (!parent) parent = lv_scr_act();
+    if (!parent) parent = lv_screen_active();
     
     if (keyboard && lv_obj_is_valid(keyboard)) {
-        lv_obj_del(keyboard);
+        lv_obj_delete(keyboard);
         keyboard = nullptr;
     }
     

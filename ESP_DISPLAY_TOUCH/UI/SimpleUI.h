@@ -3,6 +3,11 @@
 
 #include <Arduino.h>
 #include <lvgl.h>
+
+// This library targets LVGL 9.x (see README). Fail early on other versions.
+#if LVGL_VERSION_MAJOR != 9
+#error "ESP_DISPLAY_TOUCH requires LVGL 9.x"
+#endif
 #include <functional>
 
 // ==================== Global Functions ====================

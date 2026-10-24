@@ -145,7 +145,7 @@ lv_obj_t* BatteryDesign::createWidget(lv_obj_t* parent, Style style) {
     lv_obj_set_style_text_font(_voltageLabel, &lv_font_montserrat_12, LV_PART_MAIN);
     lv_obj_set_style_text_color(_voltageLabel, lv_color_hex(0x808080), LV_PART_MAIN);
 
-    lv_obj_t* detailBtn = lv_btn_create(_mainWidget);
+    lv_obj_t* detailBtn = lv_button_create(_mainWidget);
     lv_obj_set_size(detailBtn, 60, 30);
     lv_obj_align(detailBtn, LV_ALIGN_BOTTOM_RIGHT, -5, -5);
     lv_obj_add_event_cb(detailBtn, detailButtonCallback, LV_EVENT_CLICKED, this);
@@ -231,7 +231,7 @@ lv_obj_t* BatteryDesign::createDetailWindow(lv_obj_t* parent) {
     );
     lv_label_set_text(infoLabel, buf);
 
-    lv_obj_t* closeBtn = lv_btn_create(_detailWindow);
+    lv_obj_t* closeBtn = lv_button_create(_detailWindow);
     lv_obj_set_size(closeBtn, 100, 40);
     lv_obj_align(closeBtn, LV_ALIGN_BOTTOM_MID, 0, -10);
     lv_obj_add_event_cb(closeBtn, closeButtonCallback, LV_EVENT_CLICKED, this);
@@ -280,14 +280,14 @@ lv_obj_t* BatteryDesign::createColorLegend(lv_obj_t* parent) {
 void BatteryDesign::detailButtonCallback(lv_event_t* e) {
     BatteryDesign* self = (BatteryDesign*)lv_event_get_user_data(e);
     if (self && self->_detailWindow == nullptr) {
-        self->createDetailWindow(lv_scr_act());
+        self->createDetailWindow(lv_screen_active());
     }
 }
 
 void BatteryDesign::closeButtonCallback(lv_event_t* e) {
     BatteryDesign* self = (BatteryDesign*)lv_event_get_user_data(e);
     if (self && self->_detailWindow) {
-        lv_obj_del(self->_detailWindow);
+        lv_obj_delete(self->_detailWindow);
         self->_detailWindow = nullptr;
     }
 }
