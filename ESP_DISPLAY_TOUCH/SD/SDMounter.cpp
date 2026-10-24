@@ -857,18 +857,24 @@ void SDMounter::dumpFsInfo() {
 }
 
 bool SDMounter::isInserted() {
+    // With hot-swap polling on, checkHotSwap() keeps last_card_state current,
+    // so read that instead of probing the bus again.
+    if (hotswap_enabled) return last_card_state;
     return checkCardPresent();
 }
 
 bool SDMounter::isRemoved() {
-    return !checkCardPresent();
+    return !isInserted();
 }
 
 void SDMounter::checkHotSwap() {
     if (!hotswap_enabled) return;
     
     unsigned long now = millis();
-    if (now - last_hotswap_check < 200) return; // Check every 200ms for faster detection
+    // Poll every 200 ms while a card is present. While the slot is empty, poll once a
+    // second, because every probe re-initializes the SD controller.
+    unsigned long interval = last_card_state ? 200 : 1000;
+    if (now - last_hotswap_check < interval) return;
     last_hotswap_check = now;
     
     if (debug_mode) {
@@ -898,22 +904,10 @@ void SDMounter::checkHotSwap() {
     if (!last_card_state && current_state) {
         Serial.println("[SDMounter] ✅ SD card inserted!");
         
-        // If checkCardPresent mounted it but our flag says not mounted, update
-        if (!mounted && current_state) {
-            mounted = true;
-            last_card_state = true;
-            triggerCardInsertedCallback();
-            triggerMountCallback();
-            
-            Serial.println("[SDMounter] Card auto-mounted during detection");
-            Serial.printf("[SDMounter] Total: %.2f MB, Used: %.2f MB\n", 
-                          getTotalBytes() / 1048576.0, getUsedBytes() / 1048576.0);
-            return;
-        }
-        
         triggerCardInsertedCallback();
         
-        // Try to auto-mount if enabled and not already mounted
+        // Mount only when auto-mount is enabled. The probe in checkCardPresent() releases
+        // the driver, so the card is not mounted at this point.
         if (auto_mount_enabled && !mounted) {
             delay(200); // Give card time to stabilize
             Serial.println("[SDMounter] Auto-mounting inserted card...");
@@ -990,7 +984,9 @@ bool SDMounter::checkCardPresent() {
         SD_MMC.setPins(SDMMC_CLK, SDMMC_CMD, SDMMC_DATA);
         
         if (SD_MMC.begin(mount_point.c_str(), mode_1bit)) {
-            // Card is there! Keep it mounted for the check
+            // Card is there. Release the driver again: the probe must not leave the
+            // card mounted behind a mounted flag that says otherwise.
+            SD_MMC.end();
             if (debug_mode) {
                 Serial.println("[DEBUG] checkCardPresent: begin() SUCCESS - card present");
             }
