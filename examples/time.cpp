@@ -78,8 +78,12 @@ void setup() {
 
   // --- Configure NTP and set RTC ---
   configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
-  struct tm timeinfo;
-  if (getLocalTime(&timeinfo)) {
+  // NTP over UDP is unauthenticated, so a spoofed reply could set any date.
+  // Accept the result only if the year is plausible.
+  struct tm timeinfo = {};
+  bool ntp_ok = getLocalTime(&timeinfo);
+  int ntp_year = timeinfo.tm_year + 1900;
+  if (ntp_ok && ntp_year >= 2024 && ntp_year <= 2099) {
     rtc.setDateTime(timeinfo.tm_year + 1900,
                     timeinfo.tm_mon + 1,
                     timeinfo.tm_mday,
