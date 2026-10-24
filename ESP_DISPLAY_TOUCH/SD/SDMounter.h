@@ -85,7 +85,8 @@ public:
     // Status check
     bool isMounted() const { return mounted; }
     
-    // Get SD_MMC reference
+    // Unchecked escape hatch: returns the raw SD_MMC filesystem. It bypasses the
+    // mounted checks and the path normalization that the methods above apply.
     fs::SDMMCFS& getSD() { return SD_MMC; }
 
 private:

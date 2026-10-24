@@ -9,6 +9,28 @@ static const size_t kMaxReadFileBytes = 64 * 1024; // readFile(path) refuses lar
 static const size_t kMaxListEntries = 512;         // entries returned by one listing
 static const uint8_t kMaxDirDepth = 8;             // recursion depth for listing and delete
 
+// Resolves '.' and '..' segments and keeps the result inside the card root.
+// A '..' above the root is dropped, so no path can climb out of the mounted volume.
+static String normalizeCardPath(const String& raw) {
+    String out = "";
+    size_t start = 0;
+    while (start <= raw.length()) {
+        int slash = raw.indexOf('/', start);
+        if (slash < 0) slash = raw.length();
+        String seg = raw.substring(start, slash);
+        start = slash + 1;
+
+        if (seg.length() == 0 || seg == ".") continue;
+        if (seg == "..") {
+            int last = out.lastIndexOf('/');
+            out = (last > 0) ? out.substring(0, last) : String("");
+            continue;
+        }
+        out += "/" + seg;
+    }
+    return out.length() ? out : String("/");
+}
+
 SDMounter::SDMounter() 
     : mounted(false), 
       auto_mount_enabled(false),
@@ -974,12 +996,8 @@ void SDMounter::clearError() {
 }
 
 String SDMounter::getFullPath(const char* path) {
-    if (isAbsolutePath(path)) {
-        return String(path);
-    } else {
-        String full = current_dir + String(path);
-        return full;
-    }
+    String raw = isAbsolutePath(path) ? String(path) : current_dir + String(path);
+    return normalizeCardPath(raw);
 }
 
 bool SDMounter::isAbsolutePath(const char* path) {
