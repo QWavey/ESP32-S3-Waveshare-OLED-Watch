@@ -272,6 +272,7 @@ void AMOLEDBrightness::updateAnimation() {
     if (elapsed >= _animDuration) {
         // Animation complete
         _currentBrightness = _animTargetLevel;
+        _isOn = (_currentBrightness > 0);
         _isAnimating = false;
         updateOverlay(_currentBrightness);
         
@@ -294,6 +295,9 @@ void AMOLEDBrightness::updateAnimation() {
     if (level > 100) level = 100;
     uint8_t currentLevel = (uint8_t)level;
     
+    // Keep the level on screen current, so getBrightness(), retargeting and toggle() see it
+    _currentBrightness = currentLevel;
+
     // Update display
     updateOverlay(currentLevel);
 }
