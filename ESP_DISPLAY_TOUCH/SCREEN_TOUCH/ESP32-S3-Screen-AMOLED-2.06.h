@@ -24,7 +24,7 @@ public:
     }
 
     lv_obj_t* button_create(lv_obj_t* parent, const char* text, lv_event_cb_t cb, int w, int h, int x=0, int y=0) {
-        lv_obj_t* btn = lv_btn_create(parent);
+        lv_obj_t* btn = lv_button_create(parent);
         lv_obj_set_size(btn, w, h);
         lv_obj_align(btn, LV_ALIGN_CENTER, x, y);
         if(cb) lv_obj_add_event_cb(btn, cb, LV_EVENT_CLICKED, nullptr);
