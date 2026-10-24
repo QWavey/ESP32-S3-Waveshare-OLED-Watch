@@ -340,10 +340,10 @@ void UIKeyboard::event_handler(lv_event_t* e) {
     lv_event_code_t code = lv_event_get_code(e);
     
     if (code == LV_EVENT_READY) {
+        // Do not log the text: it may come from a password-mode textbox.
         Serial.println("Keyboard: Enter pressed");
         if (instance && instance->linkedTextBox) {
             String text = instance->linkedTextBox->getText();
-            Serial.printf("Keyboard: Text from textbox: %s\n", text.c_str());
             if (instance->enterCallback) {
                 instance->enterCallback(text);
             }
